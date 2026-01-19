@@ -1,0 +1,4 @@
+/target
+/.idea
+/postgres_data
+*.log
