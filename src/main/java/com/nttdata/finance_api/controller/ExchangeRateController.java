@@ -1,12 +1,13 @@
 package com.nttdata.finance_api.controller;
 
+import com.nttdata.finance_api.dto.ApiResponse;
 import com.nttdata.finance_api.dto.ExchangeRateResponse;
 import com.nttdata.finance_api.service.ExchangeRateService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/exchange-rate")
 public class ExchangeRateController {
 
     private final ExchangeRateService service;
@@ -15,8 +16,21 @@ public class ExchangeRateController {
         this.service = service;
     }
 
-    @GetMapping("/exchange-rate/{currency}")
-    public ExchangeRateResponse getExchangeRate(@PathVariable String currency) {
-        return service.getExchangeRate(currency);
+    @GetMapping("/{currency}/{date}")
+    public ResponseEntity<ApiResponse<ExchangeRateResponse>> getExchangeRate(
+            @PathVariable String currency,
+            @PathVariable String date) {
+
+        ExchangeRateResponse exchangeRate =
+                service.getExchangeRate(currency, date);
+
+        ApiResponse<ExchangeRateResponse> response =
+                new ApiResponse<>(
+                        200,
+                        "Exchange rate retrieved successfully",
+                        exchangeRate
+                );
+
+        return ResponseEntity.ok(response);
     }
 }
