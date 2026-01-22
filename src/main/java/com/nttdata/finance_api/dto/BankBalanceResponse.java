@@ -4,9 +4,15 @@ import java.math.BigDecimal;
 
 public class BankBalanceResponse {
 
-    private Long userId;
-    private BigDecimal balance;
-    private String currency;
+    private final Long userId;
+    private final BigDecimal balance;
+    private final String currency;
+
+    public BankBalanceResponse(Long userId, BigDecimal balance, String currency) {
+        this.userId = userId;
+        this.balance = balance;
+        this.currency = currency;
+    }
 
     public Long getUserId() {
         return userId;

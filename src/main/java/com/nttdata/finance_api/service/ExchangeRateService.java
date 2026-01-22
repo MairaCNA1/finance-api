@@ -1,6 +1,7 @@
 package com.nttdata.finance_api.service;
 
 import com.nttdata.finance_api.dto.ExchangeRateResponse;
+import com.nttdata.finance_api.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -12,7 +13,12 @@ import java.util.Map;
 @Service
 public class ExchangeRateService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    // 🔹 Injeção de dependência (permite mock em testes)
+    public ExchangeRateService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     public ExchangeRateResponse getExchangeRate(String currency, String date) {
 
@@ -26,21 +32,28 @@ public class ExchangeRateService {
                 restTemplate.getForObject(url, Map.class);
 
         if (response == null || response.get("cotacoes") == null) {
-            throw new RuntimeException("Exchange rate not available");
+            throw new BusinessException("Exchange rate not available");
         }
 
         List<Map<String, Object>> cotacoes =
                 (List<Map<String, Object>>) response.get("cotacoes");
 
         if (cotacoes.isEmpty()) {
-            throw new RuntimeException("Exchange rate not available");
+            throw new BusinessException(
+                    "Exchange rate not available for the given date"
+            );
         }
 
         Map<String, Object> firstQuote = cotacoes.get(0);
 
-        BigDecimal rate =
-                new BigDecimal(firstQuote.get("cotacao_venda").toString());
+        Object sellRate = firstQuote.get("cotacao_venda");
+        if (sellRate == null) {
+            throw new BusinessException(
+                    "Invalid exchange rate data returned by external service"
+            );
+        }
 
+        BigDecimal rate = new BigDecimal(sellRate.toString());
         LocalDate parsedDate = LocalDate.parse(date);
 
         return new ExchangeRateResponse(currency, parsedDate, rate);

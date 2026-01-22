@@ -4,11 +4,10 @@ import com.nttdata.finance_api.dto.ApiResponse;
 import com.nttdata.finance_api.dto.BankBalanceResponse;
 import com.nttdata.finance_api.service.BankBalanceService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/balance")
 public class BankBalanceController {
 
     private final BankBalanceService service;
@@ -17,7 +16,7 @@ public class BankBalanceController {
         this.service = service;
     }
 
-    @GetMapping("/balance/{userId}")
+    @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<BankBalanceResponse>> getBalance(
             @PathVariable Long userId) {
 
@@ -26,7 +25,7 @@ public class BankBalanceController {
         ApiResponse<BankBalanceResponse> response =
                 new ApiResponse<>(
                         200,
-                        "Balance retrieved successfully",
+                        "Bank balance retrieved successfully",
                         balance
                 );
 

@@ -1,6 +1,7 @@
 package com.nttdata.finance_api.service;
 
 import com.nttdata.finance_api.domain.User;
+import com.nttdata.finance_api.exception.BusinessException;
 import com.nttdata.finance_api.repository.UserRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
@@ -19,14 +20,17 @@ public class UserExcelService {
     }
 
     public void importUsers(MultipartFile file) {
+
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = WorkbookFactory.create(inputStream)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
 
-
-            if (rows.hasNext()) rows.next();
+            // Pula cabeçalho
+            if (rows.hasNext()) {
+                rows.next();
+            }
 
             while (rows.hasNext()) {
                 Row row = rows.next();
@@ -39,7 +43,7 @@ public class UserExcelService {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao importar usuários", e);
+            throw new BusinessException("Error importing users from Excel file");
         }
     }
 }
