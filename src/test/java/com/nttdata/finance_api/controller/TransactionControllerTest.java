@@ -1,14 +1,15 @@
 package com.nttdata.finance_api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nttdata.finance_api.domain.Category;
-import com.nttdata.finance_api.domain.Transaction;
-import com.nttdata.finance_api.domain.TransactionType;
-import com.nttdata.finance_api.domain.User;
+import com.nttdata.finance_api.config.security.JwtAuthenticationFilter;
+import com.nttdata.finance_api.config.security.JwtUtil;
+import com.nttdata.finance_api.domain.*;
+import com.nttdata.finance_api.dto.CreateTransactionRequest;
 import com.nttdata.finance_api.dto.ExpenseSummaryDTO;
 import com.nttdata.finance_api.service.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TransactionController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class TransactionControllerTest {
 
     @Autowired
@@ -32,15 +34,35 @@ class TransactionControllerTest {
     @MockBean
     private TransactionService transactionService;
 
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     private User mockUser() {
-        return new User("Nebulosa", "nebulosa@email.com");
+        return new User(
+                "Nebulosa",
+                "nebulosa@email.com",
+                "senhaFake",
+                Role.USER
+        );
     }
 
     @Test
     void shouldCreateTransaction() throws Exception {
+
+        CreateTransactionRequest request =
+                new CreateTransactionRequest(
+                        BigDecimal.valueOf(100),
+                        TransactionType.EXPENSE,
+                        Category.FOOD,
+                        LocalDate.now(),
+                        1L
+                );
 
         Transaction transaction = new Transaction(
                 BigDecimal.valueOf(100),
@@ -50,12 +72,12 @@ class TransactionControllerTest {
                 mockUser()
         );
 
-        when(transactionService.create(any(Transaction.class)))
+        when(transactionService.create(any(CreateTransactionRequest.class)))
                 .thenReturn(transaction);
 
         mockMvc.perform(post("/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(transaction)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.amount").value(100))
                 .andExpect(jsonPath("$.data.category").value("FOOD"));
@@ -91,7 +113,6 @@ class TransactionControllerTest {
 
         mockMvc.perform(get("/transactions/analysis/category/1"))
                 .andExpect(status().isOk())
-                // 🔥 AQUI ESTÁ A CORREÇÃO
                 .andExpect(jsonPath("$.data[0].label").value("FOOD"))
                 .andExpect(jsonPath("$.data[0].total").value(200));
     }

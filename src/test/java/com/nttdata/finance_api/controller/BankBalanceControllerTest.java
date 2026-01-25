@@ -1,9 +1,11 @@
 package com.nttdata.finance_api.controller;
 
+import com.nttdata.finance_api.config.security.JwtAuthenticationFilter;
 import com.nttdata.finance_api.dto.BankBalanceResponse;
 import com.nttdata.finance_api.service.BankBalanceService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -16,10 +18,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(BankBalanceController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class BankBalanceControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @MockBean
     private BankBalanceService bankBalanceService;
@@ -27,15 +33,21 @@ class BankBalanceControllerTest {
     @Test
     void shouldReturnBankBalanceByUser() throws Exception {
 
-        BankBalanceResponse response =
-                new BankBalanceResponse(1L, BigDecimal.valueOf(500), "BRL");
+        BankBalanceResponse mockResponse =
+                new BankBalanceResponse(
+                        1L,
+                        BigDecimal.valueOf(500),
+                        "BRL"
+                );
 
         when(bankBalanceService.getBalanceByUser(1L))
-                .thenReturn(response);
+                .thenReturn(mockResponse);
 
         mockMvc.perform(get("/balance/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.message").value("Saldo bancário"))
                 .andExpect(jsonPath("$.data.userId").value(1))
                 .andExpect(jsonPath("$.data.balance").value(500))
                 .andExpect(jsonPath("$.data.currency").value("BRL"));
