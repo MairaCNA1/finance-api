@@ -21,16 +21,10 @@ public class ExchangeRateController {
             @PathVariable String currency,
             @PathVariable String date) {
 
-        ExchangeRateResponse exchangeRate =
-                service.getExchangeRate(currency, date);
-
-        ApiResponse<ExchangeRateResponse> response =
-                new ApiResponse<>(
-                        200,
-                        "Exchange rate retrieved successfully",
-                        exchangeRate
-                );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Cotação obtida com sucesso",
+                service.getExchangeRate(currency, date)
+        ));
     }
 }

@@ -1,12 +1,12 @@
 package com.nttdata.finance_api.controller;
 
 import com.nttdata.finance_api.domain.Transaction;
-import com.nttdata.finance_api.dto.ApiResponse;
-import com.nttdata.finance_api.dto.ExpenseSummaryDTO;
+import com.nttdata.finance_api.dto.*;
 import com.nttdata.finance_api.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,71 +21,94 @@ public class TransactionController {
         this.service = service;
     }
 
-    // 1️⃣ Criar transação
+    // 🔒 USER cria transação apenas para si
+    @PreAuthorize("hasRole('USER')")
     @PostMapping
     public ResponseEntity<ApiResponse<Transaction>> create(
-            @RequestBody @Valid Transaction transaction) {
+            @RequestBody @Valid CreateTransactionRequest request) {
 
-        Transaction createdTransaction = service.create(transaction);
+        Transaction created = service.create(request);
 
-        ApiResponse<Transaction> response =
-                new ApiResponse<>(
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(
                         201,
-                        "Transaction created successfully",
-                        createdTransaction
-                );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                        "Transação criada",
+                        created
+                ));
     }
 
-    // 2️⃣ Listar transações por usuário
+    // 🔒 USER vê SOMENTE as próprias transações
+    @PreAuthorize("@userSecurity.isOwner(#userId)")
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<Transaction>>> listByUser(
             @PathVariable Long userId) {
 
-        List<Transaction> transactions = service.findByUser(userId);
-
-        ApiResponse<List<Transaction>> response =
+        return ResponseEntity.ok(
                 new ApiResponse<>(
                         200,
-                        "Transactions retrieved successfully",
-                        transactions
-                );
-
-        return ResponseEntity.ok(response);
+                        "Transações encontradas",
+                        service.findByUser(userId)
+                )
+        );
     }
 
-    // 3️⃣ Análise de despesas por categoria
+    @PreAuthorize("@userSecurity.isOwner(#userId)")
     @GetMapping("/analysis/category/{userId}")
     public ResponseEntity<ApiResponse<List<ExpenseSummaryDTO>>> totalByCategory(
             @PathVariable Long userId) {
 
-        List<ExpenseSummaryDTO> summary = service.totalByCategory(userId);
-
-        ApiResponse<List<ExpenseSummaryDTO>> response =
+        return ResponseEntity.ok(
                 new ApiResponse<>(
                         200,
-                        "Expense summary by category retrieved successfully",
-                        summary
-                );
-
-        return ResponseEntity.ok(response);
+                        "Resumo por categoria",
+                        service.totalByCategory(userId)
+                )
+        );
     }
 
-    // 4️⃣ Análise de despesas por dia
+    @PreAuthorize("@userSecurity.isOwner(#userId)")
     @GetMapping("/analysis/day/{userId}")
     public ResponseEntity<ApiResponse<List<ExpenseSummaryDTO>>> totalByDay(
             @PathVariable Long userId) {
 
-        List<ExpenseSummaryDTO> summary = service.totalByDay(userId);
-
-        ApiResponse<List<ExpenseSummaryDTO>> response =
+        return ResponseEntity.ok(
                 new ApiResponse<>(
                         200,
-                        "Expense summary by day retrieved successfully",
-                        summary
-                );
+                        "Resumo por dia",
+                        service.totalByDay(userId)
+                )
+        );
+    }
 
-        return ResponseEntity.ok(response);
+    @PreAuthorize("@userSecurity.isOwner(#userId)")
+    @GetMapping("/analysis/month/{userId}")
+    public ResponseEntity<ApiResponse<List<ExpenseSummaryDTO>>> totalByMonth(
+            @PathVariable Long userId) {
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        200,
+                        "Resumo por mês",
+                        service.totalByMonth(userId)
+                )
+        );
+    }
+
+    // 🔒 TRANSFERÊNCIA:
+    // remetente é SEMPRE o usuário logado (validado no service)
+    @PreAuthorize("hasRole('USER')")
+    @PostMapping("/transfer")
+    public ResponseEntity<ApiResponse<Void>> transfer(
+            @RequestBody @Valid CreateTransferRequest request) {
+
+        service.transfer(request);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        200,
+                        "Transferência realizada",
+                        null
+                )
+        );
     }
 }

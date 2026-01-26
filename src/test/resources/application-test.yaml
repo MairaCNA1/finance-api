@@ -15,3 +15,5 @@ springdoc:
   swagger-ui:
     enabled: false
   enable-spring-security: false
+
+

@@ -1,12 +1,16 @@
 package com.nttdata.finance_api.controller;
 
-import com.nttdata.finance_api.dto.ApiResponse;
 import com.nttdata.finance_api.domain.User;
+import com.nttdata.finance_api.dto.ApiResponse;
+import com.nttdata.finance_api.dto.CreateUserRequest;
+import com.nttdata.finance_api.dto.UserUploadResponse;
 import com.nttdata.finance_api.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -20,70 +24,73 @@ public class UserController {
         this.service = service;
     }
 
-    // 1️⃣ Criar usuário
+    // 🔓 Signup (público)
     @PostMapping
     public ResponseEntity<ApiResponse<User>> create(
-            @RequestBody @Valid User user) {
+            @RequestBody @Valid CreateUserRequest request) {
 
-        User createdUser = service.create(user);
+        User created = service.create(request);
 
-        ApiResponse<User> response =
-                new ApiResponse<>(
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(
                         201,
-                        "User created successfully",
-                        createdUser
-                );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                        "Usuário criado com sucesso",
+                        created
+                ));
     }
 
-    // 2️⃣ Listar usuários
+    // 🔒 Apenas ADMIN lista todos
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<User>>> list() {
 
-        List<User> users = service.findAll();
-
-        ApiResponse<List<User>> response =
+        return ResponseEntity.ok(
                 new ApiResponse<>(
                         200,
-                        "Users retrieved successfully",
-                        users
-                );
-
-        return ResponseEntity.ok(response);
+                        "Usuários listados",
+                        service.findAll()
+                )
+        );
     }
 
-    // 3️⃣ Buscar usuário por ID
+    // 🔒 USER só acessa o PRÓPRIO perfil
+    @PreAuthorize("@userSecurity.isOwner(#id)")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<User>> findById(
             @PathVariable Long id) {
 
-        User user = service.findById(id);
-
-        ApiResponse<User> response =
+        return ResponseEntity.ok(
                 new ApiResponse<>(
                         200,
-                        "User retrieved successfully",
-                        user
-                );
-
-        return ResponseEntity.ok(response);
+                        "Usuário encontrado",
+                        service.findById(id)
+                )
+        );
     }
 
-    // 4️⃣ Deletar usuário
+    // 🔒 Apenas ADMIN pode deletar
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(
-            @PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
 
         service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 
-        ApiResponse<Void> response =
+    // 🔒 Upload em massa só ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(value = "/upload", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<UserUploadResponse>> uploadUsers(
+            @RequestParam("file") MultipartFile file) {
+
+        UserUploadResponse result = service.uploadUsersFromCsv(file);
+
+        return ResponseEntity.ok(
                 new ApiResponse<>(
-                        204,
-                        "User deleted successfully",
-                        null
-                );
-
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(response);
+                        200,
+                        "Upload concluído",
+                        result
+                )
+        );
     }
 }

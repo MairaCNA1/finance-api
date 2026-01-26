@@ -1,5 +1,6 @@
 package com.nttdata.finance_api.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -17,20 +18,30 @@ public class Transaction {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TransactionType type;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Category category;
 
+    @Column(nullable = false)
     private LocalDate date;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
-    public Transaction() {}
+    protected Transaction() {}
 
-    public Transaction(BigDecimal amount, TransactionType type, Category category, LocalDate date, User user) {
+    public Transaction(
+            BigDecimal amount,
+            TransactionType type,
+            Category category,
+            LocalDate date,
+            User user
+    ) {
         this.amount = amount;
         this.type = type;
         this.category = category;
@@ -38,27 +49,10 @@ public class Transaction {
         this.user = user;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public TransactionType getType() {
-        return type;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
-    public LocalDate getDate() {
-        return date;
-    }
-
-    public User getUser() {
-        return user;
-    }
+    public Long getId() { return id; }
+    public BigDecimal getAmount() { return amount; }
+    public TransactionType getType() { return type; }
+    public Category getCategory() { return category; }
+    public LocalDate getDate() { return date; }
+    public User getUser() { return user; }
 }

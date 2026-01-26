@@ -11,12 +11,10 @@ public class HealthController {
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<String>> health() {
 
-        ApiResponse<String> response = new ApiResponse<>(
+        return ResponseEntity.ok(new ApiResponse<>(
                 200,
-                "Application is running",
+                "Aplicação no ar",
                 "OK"
-        );
-
-        return ResponseEntity.ok(response);
+        ));
     }
 }
