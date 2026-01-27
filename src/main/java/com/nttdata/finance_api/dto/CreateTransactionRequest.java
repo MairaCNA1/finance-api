@@ -1,5 +1,6 @@
 package com.nttdata.finance_api.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.nttdata.finance_api.domain.Category;
 import com.nttdata.finance_api.domain.TransactionType;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,7 @@ public record CreateTransactionRequest(
         Category category,
 
         @NotNull
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         LocalDate date,
 
         @NotNull

@@ -29,16 +29,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("type") TransactionType type
     );
 
-    // 📊 Total por dia
+    // 📊 Total por dia (AJUSTADO — ignora hora)
     @Query("""
-        SELECT new com.nttdata.finance_api.dto.ExpenseSummaryDTO(
-            t.date, SUM(t.amount)
-        )
-        FROM Transaction t
-        WHERE t.type = :type
-          AND t.user.id = :userId
-        GROUP BY t.date
-    """)
+    SELECT new com.nttdata.finance_api.dto.ExpenseSummaryDTO(
+        CAST(t.date AS java.time.LocalDate),
+        SUM(t.amount)
+    )
+    FROM Transaction t
+    WHERE t.type = :type
+      AND t.user.id = :userId
+    GROUP BY CAST(t.date AS java.time.LocalDate)
+    ORDER BY CAST(t.date AS java.time.LocalDate)
+""")
     List<ExpenseSummaryDTO> totalByDay(
             @Param("userId") Long userId,
             @Param("type") TransactionType type

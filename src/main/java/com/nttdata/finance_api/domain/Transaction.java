@@ -25,7 +25,7 @@ public class Transaction {
     @Column(nullable = false)
     private Category category;
 
-    @Column(nullable = false)
+    @Column(name = "date", nullable = false, columnDefinition = "DATE")
     private LocalDate date;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)

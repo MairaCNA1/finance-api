@@ -211,22 +211,14 @@ public class TransactionService {
         transactionRepository.save(credit);
     }
 
-    /**
-     * 💰 Saldo consolidado
-     */
+    // 💰 Saldo consolidado (REGRA CORRETA)
     public BigDecimal calculateBalance(Long userId) {
 
         BigDecimal income =
-                transactionRepository.sumAmountByType(
-                        userId,
-                        TransactionType.INCOME
-                );
+                transactionRepository.sumIncomeForBalance(userId);
 
         BigDecimal expense =
-                transactionRepository.sumAmountByType(
-                        userId,
-                        TransactionType.EXPENSE
-                );
+                transactionRepository.sumExpenseForBalance(userId);
 
         return income.subtract(expense);
     }
