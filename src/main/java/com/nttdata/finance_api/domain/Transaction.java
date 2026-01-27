@@ -28,6 +28,10 @@ public class Transaction {
     @Column(name = "date", nullable = false, columnDefinition = "DATE")
     private LocalDate date;
 
+    // 🔹 NOVO — taxa de câmbio
+    @Column(name = "exchange_rate")
+    private BigDecimal exchangeRate;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -35,6 +39,24 @@ public class Transaction {
 
     protected Transaction() {}
 
+    // 🔹 Construtor NOVO (com câmbio)
+    public Transaction(
+            BigDecimal amount,
+            TransactionType type,
+            Category category,
+            LocalDate date,
+            User user,
+            BigDecimal exchangeRate
+    ) {
+        this.amount = amount;
+        this.type = type;
+        this.category = category;
+        this.date = date;
+        this.user = user;
+        this.exchangeRate = exchangeRate;
+    }
+
+    // 🔹 Construtor ANTIGO (mantido para não quebrar nada)
     public Transaction(
             BigDecimal amount,
             TransactionType type,
@@ -42,11 +64,7 @@ public class Transaction {
             LocalDate date,
             User user
     ) {
-        this.amount = amount;
-        this.type = type;
-        this.category = category;
-        this.date = date;
-        this.user = user;
+        this(amount, type, category, date, user, null);
     }
 
     public Long getId() { return id; }
@@ -54,5 +72,6 @@ public class Transaction {
     public TransactionType getType() { return type; }
     public Category getCategory() { return category; }
     public LocalDate getDate() { return date; }
+    public BigDecimal getExchangeRate() { return exchangeRate; }
     public User getUser() { return user; }
 }

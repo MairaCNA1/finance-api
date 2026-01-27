@@ -111,4 +111,22 @@ public class TransactionController {
                 )
         );
     }
+
+    @PreAuthorize("hasRole('USER')")
+    @PostMapping("/with-exchange")
+    public ResponseEntity<ApiResponse<TransactionExchangeRateResponse>> createWithExchange(
+            @RequestBody @Valid CreateTransactionRequest request,
+            @RequestParam String currency
+    ) {
+
+        TransactionExchangeRateResponse response =
+                service.createWithExchange(request, currency);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(
+                        201,
+                        "Transaction created with exchange rate",
+                        response
+                ));
+    }
 }

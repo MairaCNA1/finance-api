@@ -10,6 +10,8 @@ import com.nttdata.finance_api.domain.User;
 import com.nttdata.finance_api.dto.CreateTransactionRequest;
 import com.nttdata.finance_api.dto.CreateTransferRequest;
 import com.nttdata.finance_api.dto.ExpenseSummaryDTO;
+import com.nttdata.finance_api.dto.ExchangeRateResponse;
+import com.nttdata.finance_api.dto.TransactionExchangeRateResponse;
 import com.nttdata.finance_api.exception.ResourceNotFoundException;
 import com.nttdata.finance_api.repository.TransactionRepository;
 import com.nttdata.finance_api.repository.UserRepository;
@@ -18,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -29,21 +32,23 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final TransactionEventProducer transactionEventProducer;
+    private final ExchangeRateService exchangeRateService;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             UserRepository userRepository,
-            TransactionEventProducer transactionEventProducer
+            TransactionEventProducer transactionEventProducer,
+            ExchangeRateService exchangeRateService
     ) {
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.transactionEventProducer = transactionEventProducer;
+        this.exchangeRateService = exchangeRateService;
     }
 
-    /**
-     * 🔒 Criação de transação
-     * Usuário SEMPRE vem do JWT
-     */
+    // ======================
+    // CRIAR TRANSAÇÃO (PADRÃO)
+    // ======================
     public Transaction create(CreateTransactionRequest request) {
 
         User loggedUser = getLoggedUser();
@@ -73,7 +78,7 @@ public class TransactionService {
         Transaction savedTransaction =
                 transactionRepository.save(transaction);
 
-        // 🔔 Kafka event (fire-and-forget)
+        // 🔔 Kafka (fire-and-forget)
         try {
             transactionEventProducer.send(
                     new TransactionCreatedEvent(
@@ -83,97 +88,47 @@ public class TransactionService {
                     )
             );
         } catch (Exception ex) {
-            log.warn(
-                    "Kafka unavailable. Transaction event not sent. userId={}",
-                    loggedUser.getId(),
-                    ex
-            );
+            log.warn("Kafka unavailable", ex);
         }
 
         return savedTransaction;
     }
 
-    /**
-     * 🔒 Lista apenas transações do usuário logado
-     */
-    public List<Transaction> findByUser(Long userId) {
+    // ======================
+    // CRIAR TRANSAÇÃO + CONVERSÃO 🌎 (NOVO)
+    // ======================
+    public TransactionExchangeRateResponse createWithExchange(
+            CreateTransactionRequest request,
+            String targetCurrency
+    ) {
 
-        User loggedUser = getLoggedUser();
+        // reaproveita a criação normal (não duplica regra)
+        Transaction transaction = create(request);
 
-        if (!loggedUser.getId().equals(userId)) {
-            throw new IllegalArgumentException("Access denied");
-        }
-
-        List<Transaction> transactions =
-                transactionRepository.findByUser_Id(userId);
-
-        if (transactions.isEmpty()) {
-            throw new ResourceNotFoundException(
-                    "No transactions found for user id: " + userId
-            );
-        }
-
-        return transactions;
-    }
-
-    public List<ExpenseSummaryDTO> totalByCategory(Long userId) {
-        validateOwnership(userId);
-
-        List<ExpenseSummaryDTO> summary =
-                transactionRepository.totalByCategory(
-                        userId,
-                        TransactionType.EXPENSE
+        ExchangeRateResponse exchange =
+                exchangeRateService.getExchangeRate(
+                        targetCurrency,
+                        transaction.getDate().toString()
                 );
 
-        if (summary.isEmpty()) {
-            throw new ResourceNotFoundException(
-                    "No expense summary by category found for user id: " + userId
-            );
-        }
+        BigDecimal convertedAmount =
+                transaction.getAmount()
+                        .divide(exchange.getRate(), 2, RoundingMode.HALF_UP);
 
-        return summary;
+        return new TransactionExchangeRateResponse(
+                transaction.getId(),
+                transaction.getAmount(),
+                "BRL",
+                targetCurrency,
+                exchange.getRate(),
+                convertedAmount,
+                transaction.getDate()
+        );
     }
 
-    public List<ExpenseSummaryDTO> totalByDay(Long userId) {
-        validateOwnership(userId);
-
-        List<ExpenseSummaryDTO> summary =
-                transactionRepository.totalByDay(
-                        userId,
-                        TransactionType.EXPENSE
-                );
-
-        if (summary.isEmpty()) {
-            throw new ResourceNotFoundException(
-                    "No expense summary by day found for user id: " + userId
-            );
-        }
-
-        return summary;
-    }
-
-    public List<ExpenseSummaryDTO> totalByMonth(Long userId) {
-        validateOwnership(userId);
-
-        List<ExpenseSummaryDTO> summary =
-                transactionRepository.totalByMonth(
-                        userId,
-                        TransactionType.EXPENSE
-                );
-
-        if (summary.isEmpty()) {
-            throw new ResourceNotFoundException(
-                    "No expense summary by month found for user id: " + userId
-            );
-        }
-
-        return summary;
-    }
-
-    /**
-     * 🔒 Transferência
-     * Remetente = usuário logado
-     */
+    // ======================
+    // TRANSFERÊNCIA
+    // ======================
     public void transfer(CreateTransferRequest request) {
 
         User fromUser = getLoggedUser();
@@ -181,8 +136,7 @@ public class TransactionService {
         User toUser = userRepository.findById(request.toUserId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Receiver not found with id: "
-                                        + request.toUserId()
+                                "Receiver not found with id: " + request.toUserId()
                         )
                 );
 
@@ -211,22 +165,107 @@ public class TransactionService {
         transactionRepository.save(credit);
     }
 
-    // 💰 Saldo consolidado (REGRA CORRETA)
-    public BigDecimal calculateBalance(Long userId) {
+    // ======================
+    // CONVERSÃO POR TRANSAÇÃO (GET)
+    // ======================
+    public TransactionExchangeRateResponse getExchangeRateForTransaction(
+            Long transactionId,
+            String targetCurrency
+    ) {
 
+        User loggedUser = getLoggedUser();
+
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Transaction not found")
+                );
+
+        if (!transaction.getUser().getId().equals(loggedUser.getId())) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        ExchangeRateResponse exchange =
+                exchangeRateService.getExchangeRate(
+                        targetCurrency,
+                        transaction.getDate().toString()
+                );
+
+        BigDecimal convertedAmount =
+                transaction.getAmount()
+                        .divide(exchange.getRate(), 2, RoundingMode.HALF_UP);
+
+        return new TransactionExchangeRateResponse(
+                transaction.getId(),
+                transaction.getAmount(),
+                "BRL",
+                targetCurrency,
+                exchange.getRate(),
+                convertedAmount,
+                transaction.getDate()
+        );
+    }
+
+    // ======================
+    // CONSULTAS
+    // ======================
+    public List<Transaction> findByUser(Long userId) {
+
+        User loggedUser = getLoggedUser();
+
+        if (!loggedUser.getId().equals(userId)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        List<Transaction> transactions =
+                transactionRepository.findByUser_Id(userId);
+
+        if (transactions.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "No transactions found for user id: " + userId
+            );
+        }
+
+        return transactions;
+    }
+
+    public List<ExpenseSummaryDTO> totalByCategory(Long userId) {
+        validateOwnership(userId);
+        return transactionRepository.totalByCategory(
+                userId,
+                TransactionType.EXPENSE
+        );
+    }
+
+    public List<ExpenseSummaryDTO> totalByDay(Long userId) {
+        validateOwnership(userId);
+        return transactionRepository.totalByDay(
+                userId,
+                TransactionType.EXPENSE
+        );
+    }
+
+    public List<ExpenseSummaryDTO> totalByMonth(Long userId) {
+        validateOwnership(userId);
+        return transactionRepository.totalByMonth(
+                userId,
+                TransactionType.EXPENSE
+        );
+    }
+
+    // ======================
+    // SALDO
+    // ======================
+    public BigDecimal calculateBalance(Long userId) {
         BigDecimal income =
                 transactionRepository.sumIncomeForBalance(userId);
-
         BigDecimal expense =
                 transactionRepository.sumExpenseForBalance(userId);
-
         return income.subtract(expense);
     }
 
-    // ============================
-    // 🔐 MÉTODOS PRIVADOS
-    // ============================
-
+    // ======================
+    // PRIVADOS
+    // ======================
     private User getLoggedUser() {
 
         String email = SecurityUtils.getLoggedUserEmail();
@@ -237,20 +276,12 @@ public class TransactionService {
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Logged user not found"
-                        )
+                        new ResourceNotFoundException("Logged user not found")
                 );
     }
 
-    private void validateSufficientBalance(
-            Long userId,
-            BigDecimal amount
-    ) {
-
-        BigDecimal balance = calculateBalance(userId);
-
-        if (balance.compareTo(amount) < 0) {
+    private void validateSufficientBalance(Long userId, BigDecimal amount) {
+        if (calculateBalance(userId).compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient balance");
         }
     }
