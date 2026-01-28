@@ -94,6 +94,8 @@ docker-compose up --build
 Acessos:
 - API: http://localhost:8080
 - Swagger: http://localhost:8080/swagger
+- Kafka: localhost:9092
+- PostgreSQL: localhost:5432
 
 ---
 

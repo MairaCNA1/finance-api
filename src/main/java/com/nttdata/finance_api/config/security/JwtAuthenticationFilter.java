@@ -13,12 +13,23 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+
+    // 🔓 ROTAS PÚBLICAS (SEM JWT)
+    private static final List<String> PUBLIC_ROUTES = List.of(
+            "/auth",
+            "/users",
+            "/swagger",
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/health"
+    );
 
     public JwtAuthenticationFilter(
             JwtUtil jwtUtil,
@@ -34,6 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+
+        // ✅ IGNORA JWT PARA ROTAS PÚBLICAS
+        if (PUBLIC_ROUTES.stream().anyMatch(path::startsWith)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = request.getHeader("Authorization");
 

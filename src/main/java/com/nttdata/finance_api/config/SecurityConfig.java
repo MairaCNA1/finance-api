@@ -36,13 +36,15 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // 🔓 rotas públicas
+                        // 🔓 Rotas públicas de bootstrap
                         .requestMatchers(
                                 "/auth/**",
+                                "/users",          // POST criar usuário
+                                "/users/**",
                                 "/health"
                         ).permitAll()
 
-                        // 🔐 resto protegido
+                        // 🔐 Todo o resto
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
