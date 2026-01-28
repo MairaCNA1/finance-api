@@ -1,5 +1,6 @@
 package com.nttdata.finance_api.service;
 
+import com.nttdata.finance_api.config.kafka.producer.TransactionEventProducer;
 import com.nttdata.finance_api.domain.*;
 import com.nttdata.finance_api.dto.CreateTransactionRequest;
 import com.nttdata.finance_api.dto.ExpenseSummaryDTO;
@@ -32,6 +33,12 @@ class TransactionServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private TransactionEventProducer transactionEventProducer;
+
+    @Mock
+    private ExchangeRateService exchangeRateService;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -155,10 +162,11 @@ class TransactionServiceTest {
         when(userRepository.findByEmail("nebulosa@email.com"))
                 .thenReturn(Optional.of(user));
 
-        when(transactionRepository.sumAmountByType(1L, TransactionType.INCOME))
+        // ✅ MOCKS CORRETOS (evita NullPointerException)
+        when(transactionRepository.sumIncomeForBalance(1L))
                 .thenReturn(BigDecimal.valueOf(500));
 
-        when(transactionRepository.sumAmountByType(1L, TransactionType.EXPENSE))
+        when(transactionRepository.sumExpenseForBalance(1L))
                 .thenReturn(BigDecimal.valueOf(100));
 
         when(transactionRepository.save(any(Transaction.class)))

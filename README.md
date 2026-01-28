@@ -1,182 +1,101 @@
-# Finance API 💰
+# 💰 Finance API — Projeto Final BECA Java JR
 
-API REST desenvolvida em Java com Spring Boot para gerenciamento financeiro,
-permitindo o cadastro de usuários, controle de transações, consulta de saldo bancário
-e integração com serviços externos de câmbio.
+API REST desenvolvida em **Java + Spring Boot** para gerenciamento de transações financeiras, com **autenticação JWT**, **mensageria com Kafka**, **consumo de APIs externas**, **geração de relatórios** e **containerização com Docker**.
 
-Este projeto foi desenvolvido como **Desafio Final da BECA Java Jr (NTT DATA)**,
-aplicando conceitos de arquitetura em camadas, boas práticas de desenvolvimento,
-tratamento de erros, documentação e testes automatizados.
+Este projeto foi desenvolvido como **Desafio Final da BECA Java JR (NTT DATA) 2025–2026**, seguindo boas práticas de **arquitetura em camadas**, **segurança**, **testes automatizados** e **documentação**.
 
 ---
 
-## 🚀 Funcionalidades
+## 📌 Funcionalidades
 
-- Cadastro, listagem, busca e exclusão de usuários
+### 🔐 Autenticação e Usuários
+- Cadastro de usuários
+- Login com autenticação JWT
+- Controle de acesso por roles (`USER`, `ADMIN`)
+- Usuários acessam apenas seus próprios dados
 - Importação de usuários via arquivo Excel
-- Registro de transações financeiras
-- Análise de despesas por categoria e por dia
-- Consulta de saldo bancário via MockAPI
-- Consulta de taxa de câmbio via BrasilAPI
-- Endpoint de health check da aplicação
+
+### 💳 Transações Financeiras
+- Criação de transações de entrada e saída
+- Validação de saldo (não permite gastar mais do que possui)
+- Transferência entre usuários
+- Listagem de transações por usuário
+
+### 📊 Análises Financeiras
+- Resumo de gastos por categoria
+- Resumo de gastos por dia
+- Resumo de gastos por mês
+- Cálculo de saldo consolidado
+
+### 🌎 Conversão de Moeda (API Pública)
+- Consumo da **BrasilAPI**
+- Conversão do valor de uma transação para outra moeda
+- Exibição de:
+  - valor original
+  - moeda de origem
+  - moeda destino
+  - taxa de câmbio
+  - valor convertido
+  - data da cotação
+
+### 🏦 Saldo Bancário (API Mock)
+- Consumo de **API Mock externa**
+- Exibição do saldo bancário do usuário
+- Simulação de integração com sistema legado
+
+### 📄 Relatórios
+- Geração de relatório financeiro
+- Download em **PDF** ou **Excel**
+- Resumo das transações do usuário
+
+### 📬 Mensageria com Kafka
+- Publicação de eventos ao criar transações
+- Consumer escutando eventos de transações criadas
+- Arquitetura desacoplada (*fire-and-forget*)
+
+### 📘 Documentação
+- Swagger UI disponível
+- Endpoints documentados automaticamente
 
 ---
 
-## 🏗️ Arquitetura
-
-O projeto segue uma **arquitetura em camadas**, separando responsabilidades
-e facilitando manutenção e testes:
-
-Controller → Service → Repository
-
-
-### Camadas:
-- **Controller**: expõe os endpoints REST e retorna respostas padronizadas
-- **Service**: contém a lógica de negócio da aplicação
-- **Repository**: acesso ao banco de dados com Spring Data JPA
-- **DTOs**: controle de entrada e saída de dados
-- **Exception Handler**: tratamento global de erros
-
----
-
-## 📦 Padronização de Respostas
-
-Todas as respostas da API seguem um padrão único utilizando o objeto `ApiResponse`:
-
-```json
-{
-  "status": 200,
-  "message": "Descrição da operação",
-  "data": {}
-}
-
-Campos:
-- status: código HTTP
-
-- message: mensagem descritiva
-
-- data: payload da resposta
+## 🧱 Arquitetura do Projeto
 
 ```
----
-
-
-## ❗ Tratamento de Erros
-
-A aplicação utiliza um GlobalExceptionHandler para capturar exceções e retornar
-respostas padronizadas, garantindo:
-
-- Uso correto dos códigos HTTP (400, 404, 500, etc.)
-
-- Mensagens claras para o cliente
-
-- Centralização do tratamento de erros
-
----
-
-## 🌐 Integrações Externas
-
-BrasilAPI
-
-- Consulta de taxa de câmbio
-
-MockAPI
-
-- Simulação de saldo bancário de usuários
-
-As URLs externas são configuradas via application.yml,
-seguindo boas práticas de configuração.
-
----
-
-## 📑 Documentação da API
-
-A API é documentada automaticamente com Swagger (Springdoc OpenAPI).
-
-Após subir a aplicação, acesse:
-
-http://localhost:8080/swagger
-
----
-
-## 🧪 Testes Automatizados
-
-O projeto possui testes automatizados utilizando:
-
-- JUnit 5
-
-- Mockito
-
-- MockMvc
-
-Foram testadas:
-
-- Camada de Service
-
-- Camada de Controller
-
-- Tratamento global de exceções
-
-Para rodar os testes:
-
-./mvnw test
+controller  →  service  →  repository  →  database
+                    ↓
+                 kafka
+                    ↓
+              APIs externas
+```
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
-
 - Java 17
-
 - Spring Boot 3
-
-- Spring Web
-
+- Spring Security (JWT)
 - Spring Data JPA
-
 - PostgreSQL
-
-- Docker / Docker Compose
-
-- OpenAPI / Swagger (Springdoc)
-
-- JUnit 5
-
-- Mockito
-
-- Apache POI (upload Excel)
-
-- MockAPI
-
+- Apache Kafka
+- Docker & Docker Compose
+- Swagger (Springdoc OpenAPI)
 - BrasilAPI
+- MockAPI
 
 ---
 
-## ▶️ Como Executar o Projeto
-Pré-requisitos
+## ▶️ Como Rodar o Projeto com Docker
 
-Java 17+
+```bash
+docker-compose up --build
+```
 
-Maven
+Acessos:
+- API: http://localhost:8080
+- Swagger: http://localhost:8080/swagger
 
-PostgreSQL
-
-Execução:
-
-- ./mvnw clean
-
-- ./mvnw spring-boot:run
-
-
-A aplicação estará disponível em:
-http://localhost:8080
-
+---
 
 ## 👩‍💻 Autora
-
-Projeto desenvolvido por Maíra
-Desafio BECA Java Jr — NTT DATA
-
-
-
-
-
+**Maíra Cristina Nascimento Assis**
