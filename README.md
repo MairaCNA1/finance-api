@@ -148,23 +148,7 @@ João,joao@email.com,123456
 - Demonstração de arquitetura orientada a eventos
 - Desacoplamento da regra de negócio
 
----
 
-## 🗂️ Variáveis importantes
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://postgres:5432/finance_db
-    username: devuser
-    password: dev1234
-
-jwt:
-  secret: minha-chave-super-secreta-finance-api-2026
-  expiration: 3600000
-
-spring.kafka.bootstrap-servers: kafka:9092
-```
 
 ---
 
