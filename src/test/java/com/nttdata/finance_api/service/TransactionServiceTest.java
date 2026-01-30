@@ -1,6 +1,6 @@
 package com.nttdata.finance_api.service;
 
-import com.nttdata.finance_api.config.kafka.producer.TransactionEventProducer;
+import com.nttdata.finance_api.config.kafka.event.TransactionCreatedEvent;
 import com.nttdata.finance_api.domain.*;
 import com.nttdata.finance_api.dto.CreateTransactionRequest;
 import com.nttdata.finance_api.dto.ExpenseSummaryDTO;
@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,10 +36,11 @@ class TransactionServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private TransactionEventProducer transactionEventProducer;
-
-    @Mock
     private ExchangeRateService exchangeRateService;
+
+    // ✅ MOCK QUE ESTAVA FALTANDO
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -112,6 +114,9 @@ class TransactionServiceTest {
         assertEquals(user, result.getUser());
 
         verify(transactionRepository).save(any(Transaction.class));
+
+        // ✅ garante que o evento foi publicado
+        verify(eventPublisher).publishEvent(any(TransactionCreatedEvent.class));
     }
 
     // =======================
@@ -139,6 +144,7 @@ class TransactionServiceTest {
         );
 
         verify(transactionRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     // =======================
@@ -162,7 +168,6 @@ class TransactionServiceTest {
         when(userRepository.findByEmail("nebulosa@email.com"))
                 .thenReturn(Optional.of(user));
 
-        // ✅ MOCKS CORRETOS (evita NullPointerException)
         when(transactionRepository.sumIncomeForBalance(1L))
                 .thenReturn(BigDecimal.valueOf(500));
 
@@ -177,6 +182,8 @@ class TransactionServiceTest {
         assertNotNull(result);
         assertEquals(Category.WITHDRAW, result.getCategory());
         assertEquals(BigDecimal.valueOf(150), result.getAmount());
+
+        verify(eventPublisher).publishEvent(any(TransactionCreatedEvent.class));
     }
 
     // =======================

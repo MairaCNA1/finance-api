@@ -21,7 +21,7 @@ class GlobalExceptionHandlerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // 🔥 MUITO IMPORTANTE
+
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 

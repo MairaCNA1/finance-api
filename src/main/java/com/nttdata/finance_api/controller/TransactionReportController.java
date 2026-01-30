@@ -17,9 +17,7 @@ public class TransactionReportController {
         this.service = service;
     }
 
-    /**
-     * 📥 Download de relatório em Excel
-     */
+
     @PreAuthorize("@userSecurity.isOwner(#userId)")
     @GetMapping("/transactions/{userId}")
     public ResponseEntity<byte[]> downloadReport(@PathVariable Long userId) {

@@ -17,7 +17,7 @@ public class BankBalanceController {
         this.bankBalanceService = bankBalanceService;
     }
 
-    // 🔒 Endpoint autenticado
+
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<BankBalanceResponse>> getBalance(@PathVariable Long userId) {

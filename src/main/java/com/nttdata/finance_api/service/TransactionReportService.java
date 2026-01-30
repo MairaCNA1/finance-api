@@ -18,9 +18,7 @@ public class TransactionReportService {
         this.repository = repository;
     }
 
-    /**
-     * 📄 Gera relatório Excel das transações do usuário
-     */
+
     public byte[] generateExcelReport(Long userId) {
 
         List<Transaction> transactions =
@@ -30,7 +28,7 @@ public class TransactionReportService {
 
             Sheet sheet = workbook.createSheet("Transações");
 
-            // Cabeçalho
+
             Row header = sheet.createRow(0);
             header.createCell(0).setCellValue("Data");
             header.createCell(1).setCellValue("Categoria");

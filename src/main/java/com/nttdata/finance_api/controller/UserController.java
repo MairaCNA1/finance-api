@@ -24,8 +24,7 @@ public class UserController {
         this.service = service;
     }
 
-    // 🔓 PUBLICO — signup inicial
-    @PreAuthorize("permitAll()")
+
     @PostMapping
     public ResponseEntity<ApiResponse<User>> create(
             @RequestBody @Valid CreateUserRequest request) {
@@ -40,7 +39,7 @@ public class UserController {
                 ));
     }
 
-    // 🔒 Apenas ADMIN lista todos
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<User>>> list() {
@@ -53,7 +52,7 @@ public class UserController {
         );
     }
 
-    // 🔒 USER só acessa o próprio perfil
+
     @PreAuthorize("@userSecurity.isOwner(#id)")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<User>> findById(
@@ -68,7 +67,7 @@ public class UserController {
         );
     }
 
-    // 🔒 Apenas ADMIN pode deletar
+
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
@@ -76,8 +75,8 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // 🔒 Upload em massa só ADMIN
-    //@PreAuthorize("hasRole('ADMIN')")
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<UserUploadResponse>> uploadUsers(
             @RequestParam("file") MultipartFile file) {

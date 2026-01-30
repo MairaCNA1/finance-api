@@ -14,7 +14,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByUser_Id(Long userId);
 
-    // 📊 Total por categoria (análise)
+
     @Query("""
         SELECT new com.nttdata.finance_api.dto.ExpenseSummaryDTO(
             t.category, SUM(t.amount)
@@ -29,7 +29,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("type") TransactionType type
     );
 
-    // 📊 Total por dia (AJUSTADO — ignora hora)
+
     @Query("""
     SELECT new com.nttdata.finance_api.dto.ExpenseSummaryDTO(
         CAST(t.date AS java.time.LocalDate),
@@ -46,7 +46,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("type") TransactionType type
     );
 
-    // 📊 Total por mês
+
     @Query("""
         SELECT new com.nttdata.finance_api.dto.ExpenseSummaryDTO(
             FUNCTION('to_char', t.date, 'YYYY-MM'),
@@ -63,7 +63,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("type") TransactionType type
     );
 
-    // 🔧 Mantido para compatibilidade (outros testes usam)
+
     @Query("""
         SELECT COALESCE(SUM(t.amount), 0)
         FROM Transaction t
@@ -75,7 +75,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("type") TransactionType type
     );
 
-    // ✅ NOVO — saldo real (entradas válidas)
+
     @Query("""
         SELECT COALESCE(SUM(t.amount), 0)
         FROM Transaction t
@@ -84,7 +84,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     """)
     BigDecimal sumIncomeForBalance(@Param("userId") Long userId);
 
-    // ✅ NOVO — saldo real (saídas válidas)
+
     @Query("""
         SELECT COALESCE(SUM(t.amount), 0)
         FROM Transaction t

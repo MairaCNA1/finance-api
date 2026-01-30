@@ -15,7 +15,7 @@ public class ExchangeRateService {
 
     private final RestTemplate restTemplate;
 
-    // 🔹 Injeção de dependência (permite mock em testes)
+
     public ExchangeRateService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }

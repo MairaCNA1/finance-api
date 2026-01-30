@@ -21,7 +21,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
 
-    // 🔓 ROTAS PÚBLICAS (SEM JWT)
     private static final List<String> PUBLIC_ROUTES = List.of(
             "/auth",
             "/users",
@@ -47,22 +46,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        String method = request.getMethod();
 
-        // ✅ IGNORA JWT PARA ROTAS PÚBLICAS
-        if (PUBLIC_ROUTES.stream().anyMatch(path::startsWith)) {
+        // 🔓 Rotas públicas reais
+        if (
+                path.startsWith("/auth") ||
+                        path.startsWith("/swagger") ||
+                        path.startsWith("/swagger-ui") ||
+                        path.startsWith("/v3/api-docs") ||
+                        path.startsWith("/health") ||
+
+                        // 🔓 REGISTRO DE USUÁRIO (APENAS POST /users)
+                        (path.equals("/users") && method.equals("POST"))
+        ) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String authHeader = request.getHeader("Authorization");
 
+        // 🔒 Qualquer outra rota exige token
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
         String jwt = authHeader.substring(7);
-        String email = jwtUtil.extractSubject(jwt);
+        String email;
+
+        try {
+            email = jwtUtil.extractSubject(jwt);
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
 
         if (email != null &&
                 SecurityContextHolder.getContext().getAuthentication() == null) {

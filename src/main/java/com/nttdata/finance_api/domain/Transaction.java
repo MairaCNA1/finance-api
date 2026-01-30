@@ -28,7 +28,7 @@ public class Transaction {
     @Column(name = "date", nullable = false, columnDefinition = "DATE")
     private LocalDate date;
 
-    // 🔹 NOVO — taxa de câmbio
+
     @Column(name = "exchange_rate")
     private BigDecimal exchangeRate;
 
@@ -39,7 +39,7 @@ public class Transaction {
 
     protected Transaction() {}
 
-    // 🔹 Construtor NOVO (com câmbio)
+
     public Transaction(
             BigDecimal amount,
             TransactionType type,
@@ -56,7 +56,7 @@ public class Transaction {
         this.exchangeRate = exchangeRate;
     }
 
-    // 🔹 Construtor ANTIGO (mantido para não quebrar nada)
+
     public Transaction(
             BigDecimal amount,
             TransactionType type,

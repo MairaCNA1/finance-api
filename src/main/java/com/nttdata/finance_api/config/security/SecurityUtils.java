@@ -15,7 +15,7 @@ public final class SecurityUtils {
             return null;
         }
 
-        // 🔒 getName() é SEMPRE seguro
+
         return auth.getName();
     }
 

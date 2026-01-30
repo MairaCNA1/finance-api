@@ -29,22 +29,27 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
 
-                        // 🔓 Swagger / OpenAPI
+
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-
-                        // 🔓 Rotas públicas de bootstrap
-                        .requestMatchers(
-                                "/auth/**",
-                                "/users",          // POST criar usuário
-                                "/users/**",
+                                "/v3/api-docs/**",
                                 "/health"
                         ).permitAll()
 
-                        // 🔐 Todo o resto
+
+                        .requestMatchers("/auth/**").permitAll()
+
+
+                        .requestMatchers("/users").permitAll()
+
+
+                        .requestMatchers("/users/upload").hasRole("ADMIN")
+
+
+                        .requestMatchers("/users/**").authenticated()
+
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

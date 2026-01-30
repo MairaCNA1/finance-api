@@ -14,7 +14,7 @@ public class UserSecurity {
 
     public boolean isOwner(Long userId) {
 
-        // ADMIN pode tudo
+
         if (SecurityUtils.hasRole("ADMIN")) {
             return true;
         }

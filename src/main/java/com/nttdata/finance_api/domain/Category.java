@@ -6,7 +6,6 @@ public enum Category {
     RENT,
     HEALTH,
     EDUCATION,
-
     SALARY,
     DEPOSIT,
     TRANSFER_IN,
@@ -16,3 +15,4 @@ public enum Category {
 
     OTHER
 }
+

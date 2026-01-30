@@ -9,6 +9,7 @@ import com.nttdata.finance_api.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -20,15 +21,12 @@ public class UserService {
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(
-            UserRepository repository,
-            PasswordEncoder passwordEncoder
-    ) {
+    public UserService(UserRepository repository,
+                       PasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
     }
 
-    // ✅ usado no signup normal
     public User create(CreateUserRequest request) {
         return createUser(
                 request.getName(),
@@ -38,13 +36,15 @@ public class UserService {
         );
     }
 
-    // 🔧 método central reutilizável (CSV vai usar isso)
-    public User createUser(
-            String name,
-            String email,
-            String rawPassword,
-            Role role
-    ) {
+    public User createUser(String name,
+                           String email,
+                           String rawPassword,
+                           Role role) {
+
+        if (repository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email já cadastrado: " + email);
+        }
+
         String encodedPassword = passwordEncoder.encode(rawPassword);
 
         User user = new User(
@@ -82,6 +82,10 @@ public class UserService {
 
     public UserUploadResponse uploadUsersFromCsv(MultipartFile file) {
 
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Arquivo CSV não enviado");
+        }
+
         int total = 0;
         int success = 0;
         int failed = 0;
@@ -94,9 +98,12 @@ public class UserService {
 
             while ((line = reader.readLine()) != null) {
 
-                // pula cabeçalho
                 if (isFirstLine) {
                     isFirstLine = false;
+                    continue;
+                }
+
+                if (line.isBlank()) {
                     continue;
                 }
 
@@ -105,9 +112,20 @@ public class UserService {
                 try {
                     String[] data = line.split(",");
 
+                    if (data.length < 3) {
+                        failed++;
+                        continue;
+                    }
+
                     String name = data[0].trim();
                     String email = data[1].trim();
                     String password = data[2].trim();
+
+
+                    if (repository.findByEmail(email).isPresent()) {
+                        failed++;
+                        continue;
+                    }
 
                     createUser(name, email, password, Role.USER);
                     success++;
@@ -118,7 +136,7 @@ public class UserService {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao processar arquivo CSV");
+            throw new RuntimeException("Erro ao processar arquivo CSV", e);
         }
 
         return new UserUploadResponse(total, success, failed);

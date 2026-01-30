@@ -24,7 +24,7 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    // ✅ JPA exige construtor público ou protected
+
     public User() {}
 
     public User(String name, String email, String password, Role role) {
@@ -41,7 +41,7 @@ public class User {
     public String getPassword() { return password; }
     public Role getRole() { return role; }
 
-    // setters mínimos (necessários para CSV)
+
     public void setName(String name) {
         this.name = name;
     }

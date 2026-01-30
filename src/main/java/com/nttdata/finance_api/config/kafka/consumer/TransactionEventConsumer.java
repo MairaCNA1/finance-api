@@ -7,10 +7,10 @@ import org.springframework.stereotype.Component;
 public class TransactionEventConsumer {
 
     @KafkaListener(
-            topics = "transaction-created",
+            topics = "transaction.created",
             groupId = "finance-api-group"
     )
     public void listen(String message) {
-        System.out.println("📩 Kafka received: " + message);
+        System.out.println("📩 Evento Kafka recebido: " + message);
     }
 }

@@ -17,7 +17,7 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // 🔓 público
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
             @RequestBody @Valid LoginRequest request) {

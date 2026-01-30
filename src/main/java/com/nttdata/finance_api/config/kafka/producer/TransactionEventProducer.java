@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class TransactionEventProducer {
 
-    private static final String TOPIC = "transaction-created";
+    private static final String TOPIC = "transaction.created";
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -23,7 +23,7 @@ public class TransactionEventProducer {
             String payload = objectMapper.writeValueAsString(event);
             kafkaTemplate.send(TOPIC, payload);
         } catch (Exception e) {
-            // NÃO quebra o fluxo principal
+
             System.err.println("Kafka error: " + e.getMessage());
         }
     }

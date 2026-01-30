@@ -21,7 +21,7 @@ public class TransactionController {
         this.service = service;
     }
 
-    // 🔒 USER cria transação apenas para si
+
     @PreAuthorize("hasRole('USER')")
     @PostMapping
     public ResponseEntity<ApiResponse<Transaction>> create(
@@ -37,7 +37,7 @@ public class TransactionController {
                 ));
     }
 
-    // 🔒 USER vê SOMENTE as próprias transações
+
     @PreAuthorize("@userSecurity.isOwner(#userId)")
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<Transaction>>> listByUser(
@@ -94,8 +94,7 @@ public class TransactionController {
         );
     }
 
-    // 🔒 TRANSFERÊNCIA:
-    // remetente é SEMPRE o usuário logado (validado no service)
+
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/transfer")
     public ResponseEntity<ApiResponse<Void>> transfer(

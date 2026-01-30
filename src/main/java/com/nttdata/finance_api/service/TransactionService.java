@@ -1,7 +1,6 @@
 package com.nttdata.finance_api.service;
 
 import com.nttdata.finance_api.config.kafka.event.TransactionCreatedEvent;
-import com.nttdata.finance_api.config.kafka.producer.TransactionEventProducer;
 import com.nttdata.finance_api.config.security.SecurityUtils;
 import com.nttdata.finance_api.domain.Category;
 import com.nttdata.finance_api.domain.Transaction;
@@ -15,9 +14,9 @@ import com.nttdata.finance_api.dto.TransactionExchangeRateResponse;
 import com.nttdata.finance_api.exception.ResourceNotFoundException;
 import com.nttdata.finance_api.repository.TransactionRepository;
 import com.nttdata.finance_api.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -26,29 +25,24 @@ import java.util.List;
 @Service
 public class TransactionService {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(TransactionService.class);
-
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
-    private final TransactionEventProducer transactionEventProducer;
     private final ExchangeRateService exchangeRateService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             UserRepository userRepository,
-            TransactionEventProducer transactionEventProducer,
-            ExchangeRateService exchangeRateService
+            ExchangeRateService exchangeRateService,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
-        this.transactionEventProducer = transactionEventProducer;
         this.exchangeRateService = exchangeRateService;
+        this.eventPublisher = eventPublisher;
     }
 
-    // ======================
-    // CRIAR TRANSAÇÃO (PADRÃO)
-    // ======================
+    @Transactional
     public Transaction create(CreateTransactionRequest request) {
 
         User loggedUser = getLoggedUser();
@@ -78,31 +72,23 @@ public class TransactionService {
         Transaction savedTransaction =
                 transactionRepository.save(transaction);
 
-        // 🔔 Kafka (fire-and-forget)
-        try {
-            transactionEventProducer.send(
-                    new TransactionCreatedEvent(
-                            loggedUser.getId(),
-                            savedTransaction.getAmount(),
-                            savedTransaction.getCategory().name()
-                    )
-            );
-        } catch (Exception ex) {
-            log.warn("Kafka unavailable", ex);
-        }
+
+        eventPublisher.publishEvent(
+                new TransactionCreatedEvent(
+                        loggedUser.getId(),
+                        savedTransaction.getAmount(),
+                        savedTransaction.getCategory().name()
+                )
+        );
 
         return savedTransaction;
     }
 
-    // ======================
-    // CRIAR TRANSAÇÃO + CONVERSÃO 🌎 (NOVO)
-    // ======================
     public TransactionExchangeRateResponse createWithExchange(
             CreateTransactionRequest request,
             String targetCurrency
     ) {
 
-        // reaproveita a criação normal (não duplica regra)
         Transaction transaction = create(request);
 
         ExchangeRateResponse exchange =
@@ -126,9 +112,7 @@ public class TransactionService {
         );
     }
 
-    // ======================
-    // TRANSFERÊNCIA
-    // ======================
+    @Transactional
     public void transfer(CreateTransferRequest request) {
 
         User fromUser = getLoggedUser();
@@ -165,9 +149,6 @@ public class TransactionService {
         transactionRepository.save(credit);
     }
 
-    // ======================
-    // CONVERSÃO POR TRANSAÇÃO (GET)
-    // ======================
     public TransactionExchangeRateResponse getExchangeRateForTransaction(
             Long transactionId,
             String targetCurrency
@@ -205,9 +186,6 @@ public class TransactionService {
         );
     }
 
-    // ======================
-    // CONSULTAS
-    // ======================
     public List<Transaction> findByUser(Long userId) {
 
         User loggedUser = getLoggedUser();
@@ -252,9 +230,6 @@ public class TransactionService {
         );
     }
 
-    // ======================
-    // SALDO
-    // ======================
     public BigDecimal calculateBalance(Long userId) {
         BigDecimal income =
                 transactionRepository.sumIncomeForBalance(userId);
@@ -263,9 +238,6 @@ public class TransactionService {
         return income.subtract(expense);
     }
 
-    // ======================
-    // PRIVADOS
-    // ======================
     private User getLoggedUser() {
 
         String email = SecurityUtils.getLoggedUserEmail();
