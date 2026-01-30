@@ -1,103 +1,199 @@
-# 💰 Finance API — Projeto Final BECA Java JR
+# Finance API
 
-API REST desenvolvida em **Java + Spring Boot** para gerenciamento de transações financeiras, com **autenticação JWT**, **mensageria com Kafka**, **consumo de APIs externas**, **geração de relatórios** e **containerização com Docker**.
+API REST desenvolvida em **Spring Boot** para gerenciamento financeiro pessoal, com autenticação JWT, controle de acesso por papéis (USER / ADMIN), integração com **Kafka**, banco de dados **PostgreSQL** e execução via **Docker**.
 
-Este projeto foi desenvolvido como **Desafio Final da BECA Java JR (NTT DATA) 2025–2026**, seguindo boas práticas de **arquitetura em camadas**, **segurança**, **testes automatizados** e **documentação**.
-
----
-
-## 📌 Funcionalidades
-
-### 🔐 Autenticação e Usuários
-- Cadastro de usuários
-- Login com autenticação JWT
-- Controle de acesso por roles (`USER`, `ADMIN`)
-- Usuários acessam apenas seus próprios dados
-- Importação de usuários via arquivo Excel
-
-### 💳 Transações Financeiras
-- Criação de transações de entrada e saída
-- Validação de saldo (não permite gastar mais do que possui)
-- Transferência entre usuários
-- Listagem de transações por usuário
-
-### 📊 Análises Financeiras
-- Resumo de gastos por categoria
-- Resumo de gastos por dia
-- Resumo de gastos por mês
-- Cálculo de saldo consolidado
-
-### 🌎 Conversão de Moeda (API Pública)
-- Consumo da **BrasilAPI**
-- Conversão do valor de uma transação para outra moeda
-- Exibição de:
-  - valor original
-  - moeda de origem
-  - moeda destino
-  - taxa de câmbio
-  - valor convertido
-  - data da cotação
-
-### 🏦 Saldo Bancário (API Mock)
-- Consumo de **API Mock externa**
-- Exibição do saldo bancário do usuário
-- Simulação de integração com sistema legado
-
-### 📄 Relatórios
-- Geração de relatório financeiro
-- Download em **PDF** ou **Excel**
-- Resumo das transações do usuário
-
-### 📬 Mensageria com Kafka
-- Publicação de eventos ao criar transações
-- Consumer escutando eventos de transações criadas
-- Arquitetura desacoplada (*fire-and-forget*)
-
-### 📘 Documentação
-- Swagger UI disponível
-- Endpoints documentados automaticamente
+Este projeto foi desenvolvido com foco em **boas práticas**, **segurança**, **arquitetura limpa** e **facilidade de demonstração em avaliação técnica**.
 
 ---
 
-## 🧱 Arquitetura do Projeto
+## 🧠 Visão Geral
 
-```
-controller  →  service  →  repository  →  database
-                    ↓
-                 kafka
-                    ↓
-              APIs externas
-```
+A Finance API permite:
 
----
-
-## 🛠️ Tecnologias Utilizadas
-- Java 17
-- Spring Boot 3
-- Spring Security (JWT)
-- Spring Data JPA
-- PostgreSQL
-- Apache Kafka
-- Docker & Docker Compose
-- Swagger (Springdoc OpenAPI)
-- BrasilAPI
-- MockAPI
+- Cadastro e autenticação de usuários
+- Controle de acesso baseado em roles (USER e ADMIN)
+- Criação e consulta de transações financeiras
+- Transferências entre usuários
+- Geração de relatórios (Excel)
+- Upload em massa de usuários via CSV (ADMIN)
+- Publicação e consumo de eventos com Kafka
+- Integração com API externa de câmbio
 
 ---
 
-## ▶️ Como Rodar o Projeto com Docker
+## 🏗️ Arquitetura
+
+- **Backend:** Java 17 + Spring Boot
+- **Banco de Dados:** PostgreSQL
+- **Mensageria:** Apache Kafka
+- **Autenticação:** JWT (Stateless)
+- **Documentação:** Swagger / OpenAPI
+- **Containerização:** Docker + Docker Compose
+
+Arquitetura em camadas:
+- Controller
+- Service
+- Repository
+- Config
+- Security
+- Kafka (Producer / Consumer)
+
+---
+
+## 🔐 Segurança
+
+- Autenticação via **JWT**
+- Autorização por roles:
+  - `USER`: operações financeiras próprias
+  - `ADMIN`: gestão de usuários e uploads
+- Filtros customizados com `OncePerRequestFilter`
+- Segurança por método com `@PreAuthorize`
+
+### Regras principais:
+- `POST /users` → público (cadastro)
+- `POST /auth/login` → público
+- `POST /users/upload` → apenas ADMIN
+- Demais endpoints → autenticados
+
+---
+
+## 🚀 Como executar o projeto
+
+### Pré-requisitos
+
+- Docker
+- Docker Compose
+- Git
+
+### Passo a passo
 
 ```bash
+git clone <repositorio>
+cd finance-api
 docker-compose up --build
 ```
 
-Acessos:
-- API: http://localhost:8080
-- Swagger: http://localhost:8080/swagger
-- Kafka: localhost:9092
-- PostgreSQL: localhost:5432
+A API ficará disponível em:
+```
+http://localhost:8080
+```
+
+Swagger:
+```
+http://localhost:8080/swagger-ui.html
+```
+
+---
+
+## 🧪 Fluxo de Testes (para apresentação)
+
+### 1️⃣ Fluxo USER
+
+1. Criar usuário  
+   `POST /users`
+
+2. Login  
+   `POST /auth/login`
+
+3. Criar transação  
+   `POST /transactions`
+
+4. Consultar saldo  
+   `GET /balance/{userId}`
+
+5. Gerar relatório  
+   `GET /transactions/report/{userId}`
+
+---
+
+### 2️⃣ Fluxo ADMIN
+
+1. Criar usuário ADMIN diretamente no banco (PostgreSQL)
+2. Login como ADMIN
+3. Upload em massa de usuários  
+   `POST /users/upload`
+
+Arquivo CSV exemplo:
+```
+doc/users_100_utf8.csv
+```
+
+---
+
+## 📂 Upload de Usuários (CSV)
+
+Formato esperado:
+
+```csv
+name,email,password
+Maria,maria@email.com,123456
+João,joao@email.com,123456
+```
+
+- Primeira linha é ignorada (header)
+- Usuários duplicados são contabilizados como falha
+- Retorno com total, sucesso e falhas
+
+---
+
+## 📊 Kafka
+
+### Evento publicado
+- `transaction.created`
+
+### Quando ocorre?
+- Sempre que uma transação é criada
+
+### Finalidade
+- Demonstração de arquitetura orientada a eventos
+- Desacoplamento da regra de negócio
+
+---
+
+## 🗂️ Variáveis importantes
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/finance_db
+    username: devuser
+    password: dev1234
+
+jwt:
+  secret: minha-chave-super-secreta-finance-api-2026
+  expiration: 3600000
+
+spring.kafka.bootstrap-servers: kafka:9092
+```
+
+---
+
+## 🧾 Status HTTP importantes
+
+- `200` → sucesso
+- `201` → criado com sucesso
+- `204` → operação realizada sem retorno (ex: DELETE)
+- `400` → erro de validação/regra de negócio
+- `401` → não autenticado
+- `403` → sem permissão
+- `500` → erro interno tratado globalmente
+
+---
+
+## 📌 Observações para avaliadores
+
+- Projeto executa 100% em Docker
+- Banco é recriado ao subir os containers
+- CSV incluso para facilitar carga inicial
+- Código organizado, comentado e modular
+- Foco em clareza de fluxo e segurança
 
 ---
 
 ## 👩‍💻 Autora
-**Maíra Cristina Nascimento Assis**
+
+Projeto desenvolvido por **Maíra Cristina Nascimento Assis**  
+Área: Desenvolvimento Backend / Java
+
+---
+
